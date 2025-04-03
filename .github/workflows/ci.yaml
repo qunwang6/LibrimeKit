@@ -55,7 +55,7 @@ jobs:
           tar -acf Frameworks.tgz Frameworks
 
       - name: Upload Archive
-        uses: actions/artifact
+        uses: actions/upload-pages-artifact@v2
         with:
           name: librimekit-frameworks
           path: Frameworks.tgz

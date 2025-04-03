@@ -1,26 +1,24 @@
 name: Build LibrimeKit
-
 on:
   workflow_dispatch:
   push:
+    # branches:
+      # - main
     tags:
       - '*'
 
 jobs:
   build:
     runs-on: macos-latest
-    permissions:
-      contents: write  # This is important for creating releases
-    
     steps:
       - name: Checkout
-        uses: actions/checkout@v4  # Updated to v4
+        uses: actions/checkout@v1
         with:
           submodules: recursive
 
       - name: Restore Cache Boost
         id: cache-boost-restore
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v1
         with:
           path: |
             /Users/runner/work/LibrimeKit/LibrimeKit/boost-iosx/frameworks
@@ -29,18 +27,18 @@ jobs:
           key: ${{ runner.os }}-boost
 
       - name: Build Boost
-        if: steps.cache-boost-restore.outputs.cache-hit != 'true'
+        if: (steps.cache-boost-restore.outputs.cache-hit != 'true')
         run: |
           make boost-build
 
-      - name: Copy Boost
-        if: steps.cache-boost-restore.outputs.cache-hit == 'true'
+      - name: copy Boost
+        if: (steps.cache-boost-restore.outputs.cache-hit == 'true')
         run: |
           make boost-copy
-
+      
       - name: Save Cache Boost
         id: cache-boost-save
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v1
         with:
           path: |
             /Users/runner/work/LibrimeKit/LibrimeKit/boost-iosx/frameworks
@@ -56,18 +54,30 @@ jobs:
         run: |
           tar -acf Frameworks.tgz Frameworks
 
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+      - name: Upload Archive
+        uses: actions/upload-artifact@v1
         with:
           name: librimekit-frameworks
           path: Frameworks.tgz
 
-      - name: Create and Upload Release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: Frameworks.tgz
-          draft: false
-          prerelease: false
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        id: upload_release_asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: Frameworks.tgz
+          asset_name: Frameworks.tgz
+          asset_content_type: application/gzip

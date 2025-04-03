@@ -18,7 +18,7 @@ jobs:
 
       - name: Restore Cache Boost
         id: cache-boost-restore
-        uses: actions/cache/restore@v1
+        uses: actions/cache/restore@v3
         with:
           path: |
             /Users/runner/work/LibrimeKit/LibrimeKit/boost-iosx/frameworks
@@ -38,7 +38,7 @@ jobs:
       
       - name: Save Cache Boost
         id: cache-boost-save
-        uses: actions/cache/save@v1
+        uses: actions/cache/save@v3
         with:
           path: |
             /Users/runner/work/LibrimeKit/LibrimeKit/boost-iosx/frameworks

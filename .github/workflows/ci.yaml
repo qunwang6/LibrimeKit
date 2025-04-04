@@ -16,44 +16,50 @@ jobs:
           submodules: recursive
 
       - name: Ensure Cache Directory Exists
-        run: mkdir -p /Users/runner/work/LibrimeKit/LibrimeKit/boost-iosx/frameworks
-
-      - name: Debug Cache Directory
-        run: ls -lah /Users/runner/work/LibrimeKit/LibrimeKit/boost-iosx || echo "Boost directory does not exist"
+        run: mkdir -p boost-iosx/scripts/Pods/icu4c-iosx/product/frameworks
 
       - name: Restore Cache Boost
         id: cache-boost-restore
         uses: actions/cache/restore@v3
         with:
           path: |
-            /Users/runner/work/LibrimeKit/LibrimeKit/boost-iosx/frameworks
+            boost-iosx/frameworks
+            boost-iosx/scripts/Pods/icu4c-iosx/product/frameworks
           key: ${{ runner.os }}-boost
 
-      - name: Build Boost
+      - name: Debug ICU Build Output
+        run: ls -lah boost-iosx/scripts/Pods/icu4c-iosx/product/frameworks || echo "ICU frameworks not found!"
+
+      - name: Build Boost (if needed)
         if: steps.cache-boost-restore.outputs.cache-hit != 'true'
         run: make boost-build
 
+      - name: Verify ICU Frameworks Before Copy
+        run: |
+          if [ ! -d "boost-iosx/scripts/Pods/icu4c-iosx/product/frameworks/icudata.xcframework" ]; then
+            echo "Error: icudata.xcframework is missing!"
+            exit 1
+          fi
+
       - name: Copy Boost
-        if: steps.cache-boost-restore.outputs.cache-hit == 'true'
         run: make boost-copy
 
       - name: Save Cache Boost
         id: cache-boost-save
         uses: actions/cache/save@v3
         with:
-          path: /Users/runner/work/LibrimeKit/LibrimeKit/boost-iosx/frameworks
+          path: |
+            boost-iosx/frameworks
+            boost-iosx/scripts/Pods/icu4c-iosx/product/frameworks
           key: ${{ runner.os }}-boost
 
       - name: Build Librime
         run: make librime-build
 
-      - name: Verify Build Output
-        run: ls -lah
-
       - name: Make Archive
         run: tar -acf Frameworks.tgz Frameworks
 
-      - name: Upload Archive as Artifact
+      - name: Upload Archive
         uses: actions/upload-artifact@v4
         with:
           name: librimekit-frameworks

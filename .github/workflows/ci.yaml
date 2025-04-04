@@ -1,9 +1,8 @@
 name: Build LibrimeKit
+
 on:
   workflow_dispatch:
   push:
-    # branches:
-      # - main
     tags:
       - '*'
 
@@ -11,10 +10,16 @@ jobs:
   build:
     runs-on: macos-latest
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v3
         with:
           submodules: recursive
+
+      - name: Ensure Cache Directory Exists
+        run: mkdir -p /Users/runner/work/LibrimeKit/LibrimeKit/boost-iosx/frameworks
+
+      - name: Debug Cache Directory
+        run: ls -lah /Users/runner/work/LibrimeKit/LibrimeKit/boost-iosx || echo "Boost directory does not exist"
 
       - name: Restore Cache Boost
         id: cache-boost-restore
@@ -22,45 +27,39 @@ jobs:
         with:
           path: |
             /Users/runner/work/LibrimeKit/LibrimeKit/boost-iosx/frameworks
-            /Users/runner/work/LibrimeKit/LibrimeKit/boost-iosx/dest
-            /Users/runner/work/LibrimeKit/LibrimeKit/boost-iosx/scripts
           key: ${{ runner.os }}-boost
 
       - name: Build Boost
-        if: (steps.cache-boost-restore.outputs.cache-hit != 'true')
-        run: |
-          make boost-build
+        if: steps.cache-boost-restore.outputs.cache-hit != 'true'
+        run: make boost-build
 
-      - name: copy Boost
-        if: (steps.cache-boost-restore.outputs.cache-hit == 'true')
-        run: |
-          make boost-copy
-      
+      - name: Copy Boost
+        if: steps.cache-boost-restore.outputs.cache-hit == 'true'
+        run: make boost-copy
+
       - name: Save Cache Boost
         id: cache-boost-save
         uses: actions/cache/save@v3
         with:
-          path: |
-            /Users/runner/work/LibrimeKit/LibrimeKit/boost-iosx/frameworks
-            /Users/runner/work/LibrimeKit/LibrimeKit/boost-iosx/dest
-            /Users/runner/work/LibrimeKit/LibrimeKit/boost-iosx/scripts
+          path: /Users/runner/work/LibrimeKit/LibrimeKit/boost-iosx/frameworks
           key: ${{ runner.os }}-boost
 
       - name: Build Librime
-        run: |
-          make librime-build
+        run: make librime-build
+
+      - name: Verify Build Output
+        run: ls -lah
 
       - name: Make Archive
-        run: |
-          tar -acf Frameworks.tgz Frameworks
+        run: tar -acf Frameworks.tgz Frameworks
 
-      - name: Upload Archive
+      - name: Upload Archive as Artifact
         uses: actions/upload-artifact@v4
         with:
           name: librimekit-frameworks
           path: Frameworks.tgz
 
-      - name: Create Release
+      - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
         env:
